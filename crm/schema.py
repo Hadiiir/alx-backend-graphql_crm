@@ -142,7 +142,7 @@ class FilteredConnectionField(DjangoFilterConnectionField):
         return queryset
 
 
-#  MUTATIONS 
+# MUTATIONS
 class CreateCustomer(graphene.Mutation):
     class Arguments:
         input = CustomerInput(required=True)
@@ -242,6 +242,31 @@ class CreateOrder(graphene.Mutation):
         return CreateOrder(order=order)
 
 
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        increment = graphene.Int(default_value=10)
+
+    products = graphene.List(ProductType)
+    message = graphene.String()
+
+    @classmethod
+    def mutate(cls, root, info, increment):
+        # Get products with stock < 10
+        low_stock_products = Product.objects.filter(stock__lt=10)
+        
+        # Update their stock
+        updated_products = []
+        for product in low_stock_products:
+            product.stock += increment
+            product.save()
+            updated_products.append(product)
+        
+        return UpdateLowStockProducts(
+            products=updated_products,
+            message=f"Updated {len(updated_products)} products"
+        )
+
+
 # QUERY EXPORT 
 class Query(graphene.ObjectType):
     hello = graphene.String(default_value="Hello from CRM schema!")
@@ -260,9 +285,31 @@ class Query(graphene.ObjectType):
     )
 
 
-#  MUTATION EXPORT
+# MUTATION EXPORT
 class Mutation(graphene.ObjectType):
     create_customer = CreateCustomer.Field()
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
+
+class Query(graphene.ObjectType):
+    # ... existing queries ...
+    
+    total_customers = graphene.Int()
+    total_orders = graphene.Int()
+    total_revenue = graphene.Float()
+
+    def resolve_total_customers(root, info):
+        from django.db.models import Count
+        return Customer.objects.count()
+
+    def resolve_total_orders(root, info):
+        return Order.objects.count()
+
+    def resolve_total_revenue(root, info):
+        from django.db.models import Sum
+        result = Order.objects.aggregate(total=Sum('total_amount'))
+        return result['total'] or 0.0
+    
+schema = graphene.Schema(query=Query, mutation=Mutation)

@@ -1,0 +1,40 @@
+from datetime import datetime
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
+from celery import shared_task
+
+@shared_task
+def generate_crm_report():
+    try:
+        transport = RequestsHTTPTransport(
+            url="http://localhost:8000/graphql",
+            use_json=True,
+        )
+        client = Client(transport=transport, fetch_schema_from_transport=True)
+
+        query = gql("""
+            query {
+                totalCustomers
+                totalOrders
+                totalRevenue
+            }
+        """)
+        
+        result = client.execute(query)
+        
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        report = (
+            f"{timestamp} - Report: "
+            f"{result['totalCustomers']} customers, "
+            f"{result['totalOrders']} orders, "
+            f"${result['totalRevenue']} revenue"
+        )
+        
+        with open('/tmp/crm_report_log.txt', 'a') as f:
+            f.write(report + '\n')
+            
+        return report
+    except Exception as e:
+        with open('/tmp/crm_report_log.txt', 'a') as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Error: {str(e)}\n")
+        raise

@@ -1,22 +1,27 @@
 #!/bin/bash
 
-# Get the directory where the script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Set the working directory (cwd)
+cwd=$(dirname "$0")
+if [ -z "$cwd" ]; then
+    cwd="."
+fi
 
-# Navigate to the Django project root directory (assuming it's one level up from cron_jobs)
-cd "$SCRIPT_DIR/.."
+# Navigate to Django project root
+if [ -f "$cwd/../manage.py" ]; then
+    cd "$cwd/.."
+else
+    echo "Error: Could not find manage.py" >> /tmp/customer_cleanup_log.txt
+    exit 1
+fi
 
-# Execute the Python command to delete inactive customers
+# Execute the cleanup command
 DELETED_COUNT=$(python manage.py shell -c "
 from django.utils import timezone
 from datetime import timedelta
 from customers.models import Customer
 from orders.models import Order
 
-# Calculate the date one year ago
 one_year_ago = timezone.now() - timedelta(days=365)
-
-# Find customers with no orders since one year ago
 inactive_customers = Customer.objects.filter(
     orders__isnull=True,
     last_order_date__lt=one_year_ago
@@ -29,6 +34,10 @@ inactive_customers.delete()
 print(count)
 ")
 
-# Log the result with timestamp
+# Log results
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-echo "[$TIMESTAMP] Deleted $DELETED_COUNT inactive customers." >> /tmp/customer_cleanup_log.txt
+if [ -z "$DELETED_COUNT" ]; then
+    echo "[$TIMESTAMP] Error: No count received" >> /tmp/customer_cleanup_log.txt
+else
+    echo "[$TIMESTAMP] Deleted $DELETED_COUNT inactive customers." >> /tmp/customer_cleanup_log.txt
+fi

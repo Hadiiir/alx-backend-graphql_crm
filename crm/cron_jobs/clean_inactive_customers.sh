@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# Set the working directory (cwd)
-cwd=$(dirname "$0")
-if [ -z "$cwd" ]; then
-    cwd="."
-fi
+# Set the working directory using BASH_SOURCE and pwd
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Navigate to Django project root
-if [ -f "$cwd/../manage.py" ]; then
-    cd "$cwd/.."
+if [ -f "$SCRIPT_DIR/../manage.py" ]; then
+    cd "$SCRIPT_DIR/.."
+    CURRENT_DIR=$(pwd)
+    echo "Current directory: $CURRENT_DIR" >> /tmp/customer_cleanup_log.txt
 else
     echo "Error: Could not find manage.py" >> /tmp/customer_cleanup_log.txt
     exit 1

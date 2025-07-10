@@ -6,6 +6,7 @@ INSTALLED_APPS = [
 CRONJOBS = [
     ('*/5 * * * *', 'crm.cron.log_crm_heartbeat')
 ]
+
 CRONJOBS = [
     # ... your existing cron jobs ...
     ('0 */12 * * *', 'crm.cron.update_low_stock'),

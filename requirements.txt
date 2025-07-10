@@ -16,6 +16,6 @@ redis==4.6.0
 django-celery-beat==2.5.0
 gql==3.4.1
 requests==2.31.0
-django-crontab
-gql
-requests
+django-crontab==0.7.1
+gql==3.4.0
+requests==2.31.0

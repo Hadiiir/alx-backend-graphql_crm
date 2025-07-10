@@ -1,25 +1,26 @@
 # CRM Celery Setup Guide
 
-## Prerequisites
+## Requirements
 - Redis server
-- Python 3.6+
-- Django
+- Python dependencies
 
 ## Installation
-1. Install dependencies:
+1. Install Redis:
 ```bash
+sudo apt update
 sudo apt install redis-server
-python3 -m pip install -r requirements.txt
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
 ```
 
-2. Run migrations:
+2. Install Python packages:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run migrations:
 ```bash
 python manage.py migrate
-```
-
-3. Start Redis:
-```bash
-sudo systemctl start redis
 ```
 
 ## Running Celery
@@ -28,15 +29,13 @@ sudo systemctl start redis
 celery -A crm worker -l info
 ```
 
-2. Start Celery Beat (for scheduled tasks):
+2. Start Celery Beat (scheduler):
 ```bash
 celery -A crm beat -l info
 ```
 
 ## Verification
-Check the report logs:
+Check report logs:
 ```bash
 cat /tmp/crm_report_log.txt
 ```
-
-The report will be generated every Monday at 6:00 AM.

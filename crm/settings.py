@@ -1,6 +1,10 @@
 INSTALLED_APPS = [
     # ... other apps ...
     'django_crontab',
+    'django_filters',
+    'django_crontab',
+    'graphene_django',
+    'crm', 
 ]
 
 CRONJOBS = [

@@ -5,28 +5,29 @@ from .models import Product
 class ProductType(DjangoObjectType):
     class Meta:
         model = Product
+        fields = ('id', 'name', 'stock')
 
 class UpdateLowStockProducts(graphene.Mutation):
     class Arguments:
-        pass  # No arguments needed for this mutation
+        pass  # No arguments needed
 
     products = graphene.List(ProductType)
     message = graphene.String()
 
     def mutate(self, info):
-        # Get products with stock < 10
+        # Query products with stock < 10
         low_stock_products = Product.objects.filter(stock__lt=10)
         
-        # Update stock for each product
+        # Increment stock by 10 for each product
         updated_products = []
         for product in low_stock_products:
-            product.stock += 10  # Increment stock by 10
+            product.stock += 10
             product.save()
             updated_products.append(product)
         
         return UpdateLowStockProducts(
             products=updated_products,
-            message=f"Successfully updated {len(updated_products)} low-stock products"
+            message=f"Restocked {len(updated_products)} low-stock products"
         )
 
 class Mutation(graphene.ObjectType):

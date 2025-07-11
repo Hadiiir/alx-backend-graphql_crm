@@ -1,42 +1,26 @@
 #!/bin/bash
 
-# Set the working directory using BASH_SOURCE and pwd
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Absolute path to the Django project directory
+PROJECT_DIR="/path/to/alx-backend-graphql_crm"
+MANAGE_PY="$PROJECT_DIR/manage.py"
+LOG_FILE="/tmp/customer_cleanup_log.txt"
 
-# Navigate to Django project root
-if [ -f "$SCRIPT_DIR/../manage.py" ]; then
-    cd "$SCRIPT_DIR/.."
-    CURRENT_DIR=$(pwd)
-    echo "Current directory: $CURRENT_DIR" >> /tmp/customer_cleanup_log.txt
-else
-    echo "Error: Could not find manage.py" >> /tmp/customer_cleanup_log.txt
-    exit 1
-fi
+# Get current timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Execute the cleanup command
-DELETED_COUNT=$(python manage.py shell -c "
+# Run Django command to delete inactive customers (no orders in the last year)
+DELETED_COUNT=$(python3 $MANAGE_PY shell -c "
 from django.utils import timezone
 from datetime import timedelta
-from customers.models import Customer
-from orders.models import Order
+from crm.models import Customer, Order
+from django.db.models import Count
 
 one_year_ago = timezone.now() - timedelta(days=365)
-inactive_customers = Customer.objects.filter(
-    orders__isnull=True,
-    last_order_date__lt=one_year_ago
-) | Customer.objects.filter(
-    orders__isnull=True
-)
-
-count = inactive_customers.count()
-inactive_customers.delete()
+customers = Customer.objects.annotate(order_count=Count('orders')).filter(order_count=0, created_at__lt=one_year_ago)
+count = customers.count()
+customers.delete()
 print(count)
-")
+" 2>&1)
 
-# Log results
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-if [ -z "$DELETED_COUNT" ]; then
-    echo "[$TIMESTAMP] Error: No count received" >> /tmp/customer_cleanup_log.txt
-else
-    echo "[$TIMESTAMP] Deleted $DELETED_COUNT inactive customers." >> /tmp/customer_cleanup_log.txt
-fi
+# Log the result with timestamp
+echo "[$TIMESTAMP] Deleted $DELETED_COUNT inactive customers" >> $LOG_FILE

@@ -1,18 +1,20 @@
 #!/bin/bash
 
-# Get current working directory
-CWD=$(dirname "$0")
-FULL_PATH="$CWD/../../"
+# Get script directory using BASH_SOURCE and pwd
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+PROJECT_DIR="$SCRIPT_DIR/../.."  # Adjust path to your project root
 
-# Activate virtual environment if exists
-if [ -f "$FULL_PATH/venv/bin/activate" ]; then
-    source "$FULL_PATH/venv/bin/activate"
-else
-    echo "Virtual environment not found. Proceeding without it." >> /tmp/customer_cleanup_log.txt
-fi
+# Store current working directory
+CWD=$(pwd)
+
+# Change to project directory
+cd "$PROJECT_DIR" || {
+    echo "Failed to change to project directory" >> /tmp/customer_cleanup_log.txt
+    exit 1
+}
 
 # Execute Django shell command
-OUTPUT=$(python "$FULL_PATH/manage.py" shell -c "
+OUTPUT=$(python manage.py shell -c "
 from django.utils import timezone
 from datetime import timedelta
 from crm.models import Customer
@@ -27,3 +29,6 @@ print(count)
 # Log the results
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 echo "[$TIMESTAMP] Deleted $OUTPUT inactive customers" >> /tmp/customer_cleanup_log.txt
+
+# Return to original directory
+cd "$CWD" || exit

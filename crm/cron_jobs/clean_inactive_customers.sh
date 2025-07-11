@@ -1,24 +1,27 @@
 #!/bin/bash
 
-# Execute the cleanup command directly without directory changes
-DELETED_COUNT=$(python3 /path/to/your/project/manage.py shell -c "
+# Get the directory of this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PROJECT_DIR="$DIR/../.."  # Adjust if your structure is different
+
+# Activate virtual environment if exists
+if [ -f "$PROJECT_DIR/venv/bin/activate" ]; then
+    source "$PROJECT_DIR/venv/bin/activate"
+fi
+
+# Execute Django shell command
+OUTPUT=$(python "$PROJECT_DIR/manage.py" shell -c "
 from django.utils import timezone
 from datetime import timedelta
-from customers.models import Customer
+from crm.models import Customer
 
-one_year_ago = timezone.now() - timedelta(days=365)
-inactive_customers = Customer.objects.filter(
-    orders__isnull=True,
-    last_order_date__lt=one_year_ago
-) | Customer.objects.filter(
-    orders__isnull=True
-)
-
+year_ago = timezone.now() - timedelta(days=365)
+inactive_customers = Customer.objects.filter(last_order__lte=year_ago)
 count = inactive_customers.count()
 inactive_customers.delete()
 print(count)
 ")
 
-# Log results
+# Log the results
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-echo "[$TIMESTAMP] Deleted ${DELETED_COUNT:-0} inactive customers." >> /tmp/customer_cleanup_log.txt
+echo "[$TIMESTAMP] Deleted $OUTPUT inactive customers" >> /tmp/customer_cleanup_log.txt

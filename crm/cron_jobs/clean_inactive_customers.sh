@@ -1,16 +1,18 @@
 #!/bin/bash
 
-# Get the directory of this script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-PROJECT_DIR="$DIR/../.."  # Adjust if your structure is different
+# Get current working directory
+CWD=$(dirname "$0")
+FULL_PATH="$CWD/../../"
 
 # Activate virtual environment if exists
-if [ -f "$PROJECT_DIR/venv/bin/activate" ]; then
-    source "$PROJECT_DIR/venv/bin/activate"
+if [ -f "$FULL_PATH/venv/bin/activate" ]; then
+    source "$FULL_PATH/venv/bin/activate"
+else
+    echo "Virtual environment not found. Proceeding without it." >> /tmp/customer_cleanup_log.txt
 fi
 
 # Execute Django shell command
-OUTPUT=$(python "$PROJECT_DIR/manage.py" shell -c "
+OUTPUT=$(python "$FULL_PATH/manage.py" shell -c "
 from django.utils import timezone
 from datetime import timedelta
 from crm.models import Customer
